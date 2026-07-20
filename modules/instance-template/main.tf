@@ -3,7 +3,7 @@ resource "google_compute_instance_template" "web_template" {
   machine_type = "e2-micro"
 
   disk {
-    source_image = "ubuntu-os-minimal-cloud/ubuntu-2604-lts-minimal-amd64-v20260610" # Valid minimal release tracking
+    source_image = "ubuntu-os-cloud/ubuntu-minimal-2604-lts-amd64" # Valid minimal release tracking
     auto_delete  = true
     boot         = true
     type         = "pd-balanced"
