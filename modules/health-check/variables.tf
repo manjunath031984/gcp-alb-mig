@@ -1,0 +1,1 @@
+# Intentionally blank for decoupling architecture rules

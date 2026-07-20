@@ -1,0 +1,30 @@
+resource "google_compute_instance_template" "web_template" {
+  name         = "web-template"
+  machine_type = "e2-micro"
+
+  disk {
+    source_image = "ubuntu-os-minimal-cloud/ubuntu-2604-lts-minimal-amd64-v20260610" # Valid minimal release tracking
+    auto_delete  = true
+    boot         = true
+    type         = "pd-balanced"
+    disk_size_gb = 10
+  }
+
+  network_interface {
+    network    = var.network_name
+    subnetwork = var.subnet_name
+
+    # Allocate ephemeral external IP to compute workloads directly
+    access_config {}
+  }
+
+  metadata = {
+    startup-script = file("${path.root}/script.sh")
+  }
+
+  tags = var.network_tags
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
