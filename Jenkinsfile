@@ -54,14 +54,14 @@ pipeline {
                 withCredentials([
                     file(credentialsId: 'gcp-sa-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
                 ]) {
-                    // Downloads a verified stable version of Terraform built on modern Go versions 
-                    // capable of negotiating up-to-date TLS/Cipher handshakes with GCP APIs
                     sh '''
                         set -euo pipefail
                         
-                        echo "=== Installing Latest Stable Terraform ==="
+                        echo "=== Installing Latest Stable Terraform (Matching versions.tf constraint) ==="
                         mkdir -p .bin
-                        curl -sSL https://releases.hashicorp.com/terraform/1.9.2/terraform_1.9.2_linux_amd64.zip -o tf.zip
+                        
+                        # UPDATED: Changed from 1.9.2 to 1.13.0 to satisfy the >= 1.13.0 condition
+                        curl -sSL https://releases.hashicorp.com/terraform/1.13.0/terraform_1.13.0_linux_amd64.zip -o tf.zip
                         unzip -q -o tf.zip -d .bin/
                         rm tf.zip
                         
