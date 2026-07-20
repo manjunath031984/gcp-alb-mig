@@ -35,13 +35,16 @@ pipeline {
         )
     }
 
-    environment {
+environment {
         GOOGLE_CLOUD_PROJECT = 'gcp-dev-july-2026'
         REGION               = 'us-central1'
         ZONE                 = 'us-central1-a'
         TF_IN_AUTOMATION     = 'true'
         TF_INPUT             = 'false'
         PATH                 = "${WORKSPACE}/.bin:${env.PATH}"
+        
+        // Expose parameters explicitly as environment variables for single-quote shells
+        VAR_FILE             = "${params.VAR_FILE}"
     }
 
     stages {
@@ -64,14 +67,15 @@ pipeline {
                     '''
                     
                     dir(params.TF_WORKING_DIR) {
-                        // Using single quotes to prevent premature Groovy execution evaluation
                         sh '''
                             set -euo pipefail
-                            terraform fmt -check -recursive
+                            terraform fmt -check -recursive -diff
+                            
+                            # Removed the -backend-config flag; Terraform will automatically read gcp-alb-mig.tf
                             terraform init \
-                                -backend-config="${BACKEND_CONFIG}" \
                                 -input=false \
                                 -no-color
+                                
                             terraform validate -no-color
                         '''
                     }
