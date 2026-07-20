@@ -11,14 +11,18 @@ resource "google_compute_backend_service" "web_backend" {
   port_name             = "http"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   timeout_sec           = 30
-  health_checks         = [var.health_check_id]
+
+  health_checks = [
+    var.health_check_id
+  ]
 
   backend {
     group           = var.mig_instance_group
     balancing_mode  = "UTILIZATION"
     max_utilization = 0.8
   }
-depends_on = [
+
+  depends_on = [
     time_sleep.wait_for_health_check
   ]
 }
