@@ -27,15 +27,9 @@ pipeline {
             defaultValue: 'gcp-alb-mig.tfvars',
             description: 'Primary Terraform variable file.'
         )
-
-        string(
-            name: 'BACKEND_CONFIG',
-            defaultValue: 'gcp-alb-mig.tf',
-            description: 'Terraform backend configuration file.'
-        )
     }
 
-environment {
+    environment {
         GOOGLE_CLOUD_PROJECT = 'gcp-dev-july-2026'
         REGION               = 'us-central1'
         ZONE                 = 'us-central1-a'
@@ -43,7 +37,7 @@ environment {
         TF_INPUT             = 'false'
         PATH                 = "${WORKSPACE}/.bin:${env.PATH}"
         
-        // Expose parameters explicitly as environment variables for single-quote shells
+        // CRITICAL FIX: Maps parameters to env vars so single-quoted scripts (''') can read them
         VAR_FILE             = "${params.VAR_FILE}"
     }
 
@@ -71,7 +65,7 @@ environment {
                             set -euo pipefail
                             terraform fmt -check -recursive -diff
                             
-                            # Removed the -backend-config flag; Terraform will automatically read gcp-alb-mig.tf
+                            # Native configuration: Picks up gcp-alb-mig.tf automatically
                             terraform init \
                                 -input=false \
                                 -no-color
@@ -96,7 +90,7 @@ environment {
                                     terraform plan \
                                         -no-color \
                                         -input=false \
-                                        -var-file="${VAR_FILE}" \
+                                        -var-file="$VAR_FILE" \
                                         -out=tfplan.out \
                                         | tee tfplan.log
                                 '''
@@ -107,7 +101,7 @@ environment {
                                         -destroy \
                                         -no-color \
                                         -input=false \
-                                        -var-file="${VAR_FILE}" \
+                                        -var-file="$VAR_FILE" \
                                         -out=tfplan.out \
                                         | tee tfplan.log
                                 '''
@@ -170,6 +164,7 @@ environment {
 
     post {
         always {
+            // 1. Archive logs first before we destroy the workspace
             dir(params.TF_WORKING_DIR) {
                 archiveArtifacts(
                     artifacts: '*.log, *.out',
@@ -177,6 +172,12 @@ environment {
                     fingerprint: true
                 )
             }
+            
+            // 2. GUARANTEED WIPE: Wipes the workspace immediately on Success, Failure, or Abort
+            cleanWs(
+                deleteDirs: true,
+                notFailBuild: true
+            )
         }
 
         success {
@@ -184,14 +185,7 @@ environment {
         }
 
         failure {
-            echo "Pipeline FAILED for project ${env.GOOGLE_CLOUD_PROJECT}. Review the archived workspace logs for target errors."
-        }
-
-        cleanup {
-            cleanWs(
-                deleteDirs: true,
-                notFailBuild: true
-            )
+            echo "Pipeline FAILED for project ${env.GOOGLE_CLOUD_PROJECT}."
         }
     }
 }
