@@ -1,3 +1,6 @@
+resource "time_sleep" "wait_for_health_check" {
+  create_duration = "20s"
+}
 resource "google_compute_global_address" "lb_ip" {
   name = "web-lb-static-ip"
 }
@@ -15,6 +18,9 @@ resource "google_compute_backend_service" "web_backend" {
     balancing_mode  = "UTILIZATION"
     max_utilization = 0.8
   }
+depends_on = [
+    time_sleep.wait_for_health_check
+  ]
 }
 
 resource "google_compute_url_map" "web_map" {
