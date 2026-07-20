@@ -41,4 +41,9 @@ module "load_balancer" {
   source             = "./modules/load-balancer"
   mig_instance_group = module.mig.instance_group_manager_id
   health_check_id    = module.health_check.health_check_id
+
+  # CRITICAL FIX: Forces Terraform to wait for the health check resource to be 100% active
+  depends_on = [
+    module.health_check
+  ]
 }
