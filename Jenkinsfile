@@ -35,10 +35,10 @@ pipeline {
         ZONE                 = 'us-central1-a'
         TF_IN_AUTOMATION     = 'true'
         TF_INPUT             = 'false'
-        PATH                 = "${WORKSPACE}/.bin:${env.PATH}"
-        
-        // CRITICAL FIX: Maps parameters to env vars so single-quoted scripts (''') can read them
         VAR_FILE             = "${params.VAR_FILE}"
+        
+        // Forces Go-based binaries to strictly utilize modern TLS protocols
+        GODEBUG              = "tls13=1"
     }
 
     stages {
@@ -49,23 +49,46 @@ pipeline {
             }
         }
 
+        stage('Install Modern Terraform & Authenticate') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'gcp-sa-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
+                ]) {
+                    // Downloads a verified stable version of Terraform built on modern Go versions 
+                    // capable of negotiating up-to-date TLS/Cipher handshakes with GCP APIs
+                    sh '''
+                        set -euo pipefail
+                        
+                        echo "=== Installing Latest Stable Terraform ==="
+                        mkdir -p .bin
+                        curl -sSL https://releases.hashicorp.com/terraform/1.9.2/terraform_1.9.2_linux_amd64.zip -o tf.zip
+                        unzip -q -o tf.zip -d .bin/
+                        rm tf.zip
+                        
+                        export PATH="${WORKSPACE}/.bin:$PATH"
+                        terraform version
+
+                        echo "=== Authenticating with GCP ==="
+                        gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+                        gcloud config set project "$GOOGLE_CLOUD_PROJECT"
+                    '''
+                }
+            }
+        }
+
         stage('Authenticate & Init') {
             steps {
                 withCredentials([
                     file(credentialsId: 'gcp-sa-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
                 ]) {
-                    sh '''
-                        set -euo pipefail
-                        gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
-                        gcloud config set project "$GOOGLE_CLOUD_PROJECT"
-                    '''
-                    
                     dir(params.TF_WORKING_DIR) {
                         sh '''
                             set -euo pipefail
+                            export PATH="${WORKSPACE}/.bin:$PATH"
+                            
                             terraform fmt -check -recursive -diff
                             
-                            # Native configuration: Picks up gcp-alb-mig.tf automatically
+                            # Picks up gcp-alb-mig.tf automatically
                             terraform init \
                                 -input=false \
                                 -no-color
@@ -87,6 +110,8 @@ pipeline {
                             if (params.ACTION == 'apply') {
                                 sh '''
                                     set -euo pipefail
+                                    export PATH="${WORKSPACE}/.bin:$PATH"
+                                    
                                     terraform plan \
                                         -no-color \
                                         -input=false \
@@ -97,6 +122,8 @@ pipeline {
                             } else {
                                 sh '''
                                     set -euo pipefail
+                                    export PATH="${WORKSPACE}/.bin:$PATH"
+                                    
                                     terraform plan \
                                         -destroy \
                                         -no-color \
@@ -131,6 +158,8 @@ pipeline {
                     dir(params.TF_WORKING_DIR) {
                         sh '''
                             set -euo pipefail
+                            export PATH="${WORKSPACE}/.bin:$PATH"
+                            
                             terraform apply \
                                 -no-color \
                                 -input=false \
@@ -154,6 +183,8 @@ pipeline {
                 dir(params.TF_WORKING_DIR) {
                     sh '''
                         set -euo pipefail
+                        export PATH="${WORKSPACE}/.bin:$PATH"
+                        
                         echo "===== Operational Stack Outputs ====="
                         terraform output -no-color | tee tfoutputs.log
                     '''
@@ -164,7 +195,6 @@ pipeline {
 
     post {
         always {
-            // 1. Archive logs first before we destroy the workspace
             dir(params.TF_WORKING_DIR) {
                 archiveArtifacts(
                     artifacts: '*.log, *.out',
@@ -172,8 +202,6 @@ pipeline {
                     fingerprint: true
                 )
             }
-            
-            // 2. GUARANTEED WIPE: Wipes the workspace immediately on Success, Failure, or Abort
             cleanWs(
                 deleteDirs: true,
                 notFailBuild: true
