@@ -1,6 +1,10 @@
 resource "google_compute_instance_template" "web_template" {
-  name         = "web-template"
+  name_prefix  = "web-template-"
   machine_type = "e2-micro"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   disk {
     source_image = "ubuntu-os-cloud/ubuntu-minimal-2604-lts-amd64" # Valid minimal release tracking
