@@ -67,7 +67,7 @@ pipeline {
                         // Using single quotes to prevent premature Groovy execution evaluation
                         sh '''
                             set -euo pipefail
-                            terraform fmt -check -recursive -diff
+                            terraform fmt -check -recursive
                             terraform init \
                                 -backend-config="${BACKEND_CONFIG}" \
                                 -input=false \
