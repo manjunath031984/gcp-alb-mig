@@ -1,5 +1,5 @@
 resource "google_compute_instance_template" "web_template" {
-  name_prefix  = "web-template"
+  name         = "web-template"
   machine_type = "e2-micro"
 
   disk {
