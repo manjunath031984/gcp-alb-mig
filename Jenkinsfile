@@ -49,7 +49,7 @@ pipeline {
             }
         }
 
-        stage('Install Modern Terraform & Authenticate') {
+        /*stage('Install Modern Terraform & Authenticate') {
             steps {
                 withCredentials([
                     file(credentialsId: 'gcp-sa-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
@@ -74,7 +74,7 @@ pipeline {
                     '''
                 }
             }
-        }
+        }*/
 
         stage('Authenticate & Init') {
             steps {
