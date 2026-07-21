@@ -49,56 +49,7 @@ pipeline {
             }
         }
 
-        /*stage('Install Modern Terraform & Authenticate') {
-            steps {
-                withCredentials([
-                    file(credentialsId: 'gcp-sa-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
-                ]) {
-                    sh '''
-                        set -euo pipefail
-                        
-                        echo "=== Installing Latest Stable Terraform (Matching versions.tf constraint) ==="
-                        mkdir -p .bin
-                        
-                        # UPDATED: Changed from 1.9.2 to 1.13.0 to satisfy the >= 1.13.0 condition
-                        curl -sSL https://releases.hashicorp.com/terraform/1.13.0/terraform_1.13.0_linux_amd64.zip -o tf.zip
-                        unzip -q -o tf.zip -d .bin/
-                        rm tf.zip
-                        
-                        export PATH="${WORKSPACE}/.bin:$PATH"
-                        terraform version
-
-                        echo "=== Authenticating with GCP ==="
-                        gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
-                        gcloud config set project "$GOOGLE_CLOUD_PROJECT"
-                    '''
-                }
-            }
-        }
-
-        stage('Authenticate & Init') {
-            steps {
-                withCredentials([
-                    file(credentialsId: 'gcp-sa-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
-                ]) {
-                    dir(params.TF_WORKING_DIR) {
-                        sh '''
-                            set -euo pipefail
-                            export PATH="${WORKSPACE}/.bin:$PATH"
-                            
-                            terraform fmt -check -recursive -diff
-                            
-                            # Picks up gcp-alb-mig.tf automatically
-                            terraform init \
-                                -input=false \
-                                -no-color
-                                
-                            terraform validate -no-color
-                        '''
-                    }
-                }
-            }
-        }*/
+        
         stage('Authenticate & Init') {
     steps {
         withCredentials([
