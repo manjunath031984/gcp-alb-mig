@@ -74,7 +74,7 @@ pipeline {
                     '''
                 }
             }
-        }*/
+        }
 
         stage('Authenticate & Init') {
             steps {
@@ -98,7 +98,33 @@ pipeline {
                     }
                 }
             }
+        }*/
+        stage('Authenticate & Init') {
+    steps {
+        withCredentials([
+            file(credentialsId: 'gcp-sa-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
+        ]) {
+            dir(params.TF_WORKING_DIR) {
+                sh '''
+                    set -euo pipefail
+
+                    terraform version
+
+                    gcloud auth activate-service-account \
+                        --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+
+                    gcloud config set project "$GOOGLE_CLOUD_PROJECT"
+
+                    terraform fmt -check -recursive
+
+                    terraform init -input=false -no-color
+
+                    terraform validate -no-color
+                '''
+            }
         }
+    }
+}
 
         stage('Terraform Plan') {
             steps {
